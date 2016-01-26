@@ -3,7 +3,7 @@ clear
 addpath(genpath('/home/nxs113020/Downloads/MSR_Identity_dir/MSR_Identity_Toolkit_v1.0/code/'));
 
 %% Step0: Opening MATLAB pool
-parpool open
+%parpool;
 
 %% Step1: Training the UBM
 ubm_location = 'Aging/mf_UBM';
