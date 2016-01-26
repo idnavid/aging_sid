@@ -3,10 +3,7 @@ clear
 addpath(genpath('/home/nxs113020/Downloads/MSR_Identity_dir/MSR_Identity_Toolkit_v1.0/code/'));
 
 %% Step0: Opening MATLAB pool
-nworkers = 12;
-nworkers = min(nworkers, feature('NumCores'));
-isopen = matlabpool('size')>0;
-if ~isopen, matlabpool(nworkers); end
+parpool open
 
 %% Step1: Training the UBM
 ubm_location = 'Aging/mf_UBM';
@@ -31,21 +28,20 @@ fid = fopen(dataList, 'rt');
 C = textscan(fid, '%s %s');
 fclose(fid);
 feaFiles = C{1};
-#dev_ivs = zeros(tv_dim, length(feaFiles));
+dev_ivs = zeros(tv_dim, length(feaFiles));
+stats = cell(length(feaFiles), 1);
+parfor file = 1 : length(feaFiles),
+    [N, F] = compute_bw_stats(feaFiles{file}, ubm);
+    stats{file} = [N; F];
+end 
 
-#stats = cell(length(feaFiles), 1);
-#parfor file = 1 : length(feaFiles),
-#    [N, F] = compute_bw_stats(feaFiles{file}, ubm);
-#    stats{file} = [N; F];
-#end 
+parfor file = 1 : length(feaFiles),
+    dev_ivs(:, file) = extract_ivector(stats{file}, ubm, T);
+end
 
-#parfor file = 1 : length(feaFiles),
-#    dev_ivs(:, file) = extract_ivector(stats{file}, ubm, T);
-#end
+save('dev_ivectors','dev_ivs')
+save('stats','stats')
 
-#save('dev_ivectors','dev_ivs')
-#save('stats','stats')
-#pause
 % reduce the dimensionality with LDA
 spk_labs = C{2};
 V = lda(dev_ivs, spk_labs);
