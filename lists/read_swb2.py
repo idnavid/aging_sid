@@ -1,5 +1,8 @@
 #! /usr/bin/python 
 
+import sys
+
+target_age = int(sys.argv[1])
 
 fcallinfo = open('swb2_callinfo.tbl')
 call_dict = {}
@@ -32,7 +35,7 @@ for i in fspkrinfo:
     spkrgender = line_list[1]
     spkrage = line_list[2]
     try:
-        if int(spkrage) < 20:
+        if int(spkrage) == target_age:
             for j in call_dict[spkrid]:
                 print file_dict[j]+' '+spkrid
     except:
