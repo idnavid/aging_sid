@@ -135,7 +135,7 @@ end
 function [Phi, Sigma] = maximization_plda(data1, data2, Ey1, Eyy1, Ey2, Eyy2)
 % ML re-estimation of the Eignevoice subspace and the covariance of the
 % residual noise (full).
-alpha = 0.5;
+alpha = 0.6;
 nsamples1 = size(data1, 2);
 nsamples2 = size(data2, 2);
 nsamples = nsamples1 + nsamples2;

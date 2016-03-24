@@ -1,50 +1,23 @@
 addpath(genpath('/home/nxs113020/Downloads/MSR_Identity_dir/MSR_Identity_Toolkit_v1.0/code/'));
-% 
-% %% Step0: Opening MATLAB pool
-% parpool;
-% 
-% nworkers = 12;
-% 
-% %% Step1: Training the UBM
-% dataList = 'lists/ubm_male_nist0506.lst';
-% nmix        = 1024;
-% final_niter = 10;
-% ds_factor   = 10;
-% %ubm = gmm_em(dataList, nmix, final_niter, ds_factor, nworkers);
-% 
-% %save('models/ubm_male','ubm');
-% 
-% %% Step1: Training the UBM
+%%
 ubm_location = 'models/ubm_male';
 tmp = load(ubm_location);
 ubm = tmp.ubm;
 nmix = length(ubm.w);
 clear tmp;
-% 
-%% Step2: Learning the total variability subspace from background data
-% tv_dim = 400; 
-% niter  = 5;
-% dataList = 'lists/ubm_male_nist0506.lst';
-% fid = fopen(dataList, 'rt');
-% C = textscan(fid, '%s');
-% fclose(fid);
-% feaFiles = C{1};
-% stats = cell(length(feaFiles), 1);
-% parfor file = 1 : length(feaFiles),
-%     [N, F] = compute_bw_stats(feaFiles{file}, ubm);
-%     stats{file} = [N; F];
-% end
-% T = train_tv_space(stats, ubm, tv_dim, niter, nworkers);
-% 
-%save('models/T_male','T');
-%
+%%
 tv_location = 'models/T_male';
 tmp = load(tv_location);
 T = tmp.T;
 tv_dim = size(T,1); 
 clear tmp
-% 
-%% Step3: Training the Gaussian PLDA model with development i-vectors
+%%
+deviv_location = 'models/dev_ivectors';
+tmp = load(deviv_location);
+dev_ivs = tmp.dev_ivs;
+tv_dim = size(T,1); 
+clear tmp
+%%
 lda_dim = 100;
 nphi    = 100;
 niter   = 10;
@@ -53,34 +26,11 @@ fid = fopen(dataList, 'rt');
 C = textscan(fid, '%s %s');
 fclose(fid);
 feaFiles = C{1};
-%dev_ivs = zeros(tv_dim, length(feaFiles));
-%stats = cell(length(feaFiles), 1);
-%parfor file = 1 : length(feaFiles),
-%    [N, F] = compute_bw_stats(feaFiles{file}, ubm);
-%    stats{file} = [N; F];
-%end 
-%
-%parfor file = 1 : length(feaFiles),
-%    dev_ivs(:, file) = extract_ivector(stats{file}, ubm, T);
-%end
-
-%save('models/dev_ivectors','dev_ivs')
-%save('models/stats','stats')
-deviv_location = 'models/dev_ivectors';
-tmp = load(deviv_location);
-dev_ivs = tmp.dev_ivs;
-tv_dim = size(T,1); 
-clear tmp
-
-% reduce the dimensionality with LDA
 spk_labs = C{2};
 V = lda(dev_ivs, spk_labs);
 dev_ivs = V(:, 1 : lda_dim)' * dev_ivs;
-%------------------------------------
 plda = gplda_em(dev_ivs, spk_labs, nphi, niter);
-
-
-%% Step4: Scoring the verification trials
+%%
 fea_dir = '/home/nxs113020/features/marp_male_60sec_chunks_postVAD/';
 fea_ext = '.htk';
 fid = fopen('lists/MARP_lists/speaker_models_1_19', 'rt');
@@ -105,12 +55,7 @@ parfor spk = 1 : nspks,
    model_ivs2(:, spk) = extract_ivector([N; F]/length(spk_files), ubm, T); % stats averaging!
    model_ivs1(:, spk) = model_ivs1(:, spk)/length(spk_files); % i-vector averaging!
 end
-
-% model_ivs.model_ivs1 = model_ivs1;
-% model_ivs.model_ivs2 = model_ivs2;
-% 
-% save('models/model_ivs','model_ivs')
-
+%%
 fea_dir = '/home/nxs113020/features/marp_male_60sec_chunks_postVAD/';
 trial_list = 'lists/MARP_lists/m_trials_1_19.lst';
 fid = fopen(trial_list, 'rt');
@@ -134,11 +79,11 @@ scores1 = score_gplda_trials(plda, model_ivs1_lda, test_ivs_lda);
 linearInd = sub2ind([nspks, length(test_files)], Kmodel, Ktest);
 scores1 = scores1(linearInd); % select the valid trials
 
-scores2 = score_gplda_tri   als(plda, model_ivs2_lda, test_ivs_lda);
+scores2 = score_gplda_trials(plda, model_ivs2_lda, test_ivs_lda);
 scores2 = scores2(linearInd); % select the valid trials
 
 %% Step5: Computing the EER and plotting the DET curve
 labels = C{3};
-% [eer1, dcf08, dcf10] = compute_eer(scores1, labels, true); % IV averaging
-hold on
-[eer2, dcf08, dcf10] = compute_eer(scores2, labels, true); % stats averaging
+hold on 
+c = 'r';
+[eer2, dcf08, dcf10] = compute_eer(scores2, labels, true,c); % stats averaging
